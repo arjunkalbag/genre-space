@@ -2,7 +2,7 @@
 
 An interactive, zoomable map of music genre evolution (1950–2024) paired with a research paper.
 
-**Live site:** [arjunkalbag.github.io/genre-space](https://arjunkalbag.github.io/genre-space)
+**Live site:** [genre-space.netlify.app](genre-space.netlify.app)
 
 ---
 
@@ -12,8 +12,6 @@ An interactive, zoomable map of music genre evolution (1950–2024) paired with 
 |---|---|
 | `genre-space.html` | Self-contained interactive — open in any browser, no server needed |
 | `genre-space-paper.pdf` | Research paper: *The Genre Explosion: Diversity, Demography, and the Shape of Recorded Music, 1950–2024* |
-
-Keep both files in the same folder so the "read the paper" link in the site resolves.
 
 ---
 
@@ -50,12 +48,6 @@ Keep both files in the same folder so the "read the paper" link in the site reso
 - Queries with **DuckDB** (Shannon/Simpson diversity, genre demography, co-occurrence MDS)
 - CLI: `genre-space seed | parse | analyze | figures`
 - Tests with `pytest`; linting with `ruff`
-
----
-
-## Hosting on GitHub Pages
-
-Push the repository, then in **Settings → Pages** set the source to **`main` / `docs`**. The site goes live at `arjunkalbag.github.io/genre-space`. The paper PDF (`docs/paper.pdf`) is linked from the site automatically.
 
 ---
 
