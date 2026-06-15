@@ -2,7 +2,7 @@
 
 An interactive, zoomable map of music genre evolution (1950–2024) paired with a research paper.
 
-**Live site:** [genre-space](genrespace.netlify.app)
+**Live site:** https://genre-space.netlify.app/
 
 ---
 
