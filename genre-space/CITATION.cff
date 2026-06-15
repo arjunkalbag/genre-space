@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+title: "genre-space: tracking the evolution of music genres"
+message: "If you use this software or its data, please cite it."
+type: software
+authors:
+  - given-names: Arjun
+version: 0.1.0
+date-released: 2026-06-15
+license: MIT
+keywords:
+  - music genres
+  - cultural analytics
+  - data visualization
+abstract: >-
+  A data project tracking how music genres and subgenres are born, drift, and
+  fade between 1950 and the present, using release metadata from Discogs.
+  Pairs a diversity-and-demography analysis with a playful interactive map.

@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<releases>
+  <release id="1" status="Accepted">
+    <released>1985-00-00</released>
+    <country>US</country>
+    <genres><genre>Electronic</genre></genres>
+    <styles><style>House</style><style>Disco</style></styles>
+  </release>
+  <release id="2" status="Accepted">
+    <released>1986</released>
+    <country>UK</country>
+    <genres><genre>Electronic</genre></genres>
+    <styles><style>House</style><style>Techno</style></styles>
+  </release>
+  <release id="3" status="Accepted">
+    <released>1991-03-12</released>
+    <country>US</country>
+    <genres><genre>Hip Hop</genre><genre>Funk / Soul</genre></genres>
+    <styles><style>Boom Bap</style></styles>
+  </release>
+  <release id="4" status="Accepted">
+    <released></released>
+    <country>DE</country>
+    <genres><genre>Rock</genre></genres>
+    <styles><style>Punk</style></styles>
+  </release>
+  <release id="5" status="Accepted">
+    <released>1991</released>
+    <country>US</country>
+    <genres><genre>Hip Hop</genre></genres>
+    <styles><style>Boom Bap</style><style>Gangsta</style></styles>
+  </release>
+  <release id="6" status="Accepted">
+    <released>1987-06</released>
+    <country>UK</country>
+    <genres><genre>Electronic</genre></genres>
+    <styles><style>Techno</style><style>House</style></styles>
+  </release>
+  <release id="7" status="Accepted">
+    <released>1972</released>
+    <country>JM</country>
+    <genres><genre>Reggae</genre></genres>
+    <styles><style>Roots Reggae</style></styles>
+  </release>
+  <release id="8" status="Deleted">
+    <released>2001</released>
+    <country>US</country>
+    <genres><genre>Electronic</genre></genres>
+    <styles><style>House</style></styles>
+  </release>
+  <release id="9" status="Accepted">
+    <released>198?</released>
+    <country>?</country>
+    <genres><genre>Rock</genre></genres>
+    <styles><style>Punk</style><style>Punk</style></styles>
+  </release>
+</releases>

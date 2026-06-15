@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>genre-space</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FAFAFB; --ink:#1B1B22; --mute:#6E6E7C; --faint:#9A9AA6; --hair:#ECECEF;
+    --card:#FFFFFF; --shadow:0 1px 2px rgba(20,20,30,.04),0 8px 30px rgba(20,20,30,.05);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased; overflow:hidden;
+  }
+  .app{display:flex; flex-direction:column; height:100vh; max-width:1180px; margin:0 auto; padding:20px 22px 18px;}
+  .mono{font-family:"DM Mono",ui-monospace,Menlo,monospace;}
+  .display{font-family:"Bricolage Grotesque",system-ui,sans-serif;}
+
+  /* ---- header ---- */
+  header{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-shrink:0;}
+  .title h1{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:30px; letter-spacing:-.02em; margin:0; line-height:1;}
+  .title p{margin:6px 0 0; color:var(--mute); font-size:14px;}
+  .focus{min-height:18px; margin:7px 0 0; font-family:"DM Mono",monospace; font-size:12.5px; color:var(--faint); letter-spacing:.01em; transition:color .2s;}
+  .focus b{color:var(--ink); font-weight:500;}
+  .headright{display:flex; flex-direction:column; align-items:flex-end; gap:10px; flex-shrink:0;}
+  .paper-link{font-family:"DM Mono",monospace; font-size:11.5px; color:var(--mute); text-decoration:none; border:1px solid var(--hair); padding:5px 12px; border-radius:999px; white-space:nowrap; transition:.15s;}
+  .paper-link:hover{color:var(--ink); border-color:#c8c8d0; background:#fff;}
+
+  /* ---- legend ---- */
+  .legend{display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 8px; flex-shrink:0;}
+  .pill{display:inline-flex; align-items:center; gap:7px; cursor:pointer; user-select:none;
+        font-size:12.5px; color:var(--mute); background:#fff; border:1px solid var(--hair);
+        padding:5px 11px 5px 8px; border-radius:999px; transition:.16s;}
+  .pill i{width:11px; height:11px; border-radius:50%;}
+  .pill:hover{border-color:#dadae0;}
+  .pill.dim{opacity:.4;}
+  .pill.solo{border-color:currentColor;}
+
+  /* ---- stage ---- */
+  .stage{position:relative; flex:1; min-height:0; margin-top:2px;}
+  svg#viz{position:absolute; inset:0; width:100%; height:100%; cursor:grab;}
+  svg#viz.grabbing{cursor:grabbing;}
+  .layer{transition:opacity .45s ease;}
+  .axis-label{font-family:"DM Mono",monospace; font-size:11px; fill:var(--faint); letter-spacing:.04em;}
+  .grid-line{stroke:#F0F0F2;}
+  .blab{font-family:"Bricolage Grotesque",sans-serif; font-weight:500; fill:var(--ink); pointer-events:none;}
+  .stream-lab{font-family:"DM Mono",monospace; font-size:12px;}
+  .nowline{stroke:#1B1B22; stroke-width:1.2; stroke-dasharray:2 4; opacity:.55;}
+  .nowyr{font-family:"DM Mono",monospace; font-size:12px; fill:var(--ink);}
+
+  /* ---- zoom controls ---- */
+  .zoomctl{position:absolute; left:0; bottom:6px; display:flex; flex-direction:column; gap:6px; z-index:4;}
+  .zoomctl button{width:34px; height:34px; border-radius:9px; border:1px solid var(--hair); background:#fff;
+        box-shadow:var(--shadow); color:var(--ink); font-size:17px; cursor:pointer; display:grid; place-items:center;
+        font-family:"DM Mono",monospace; transition:.12s;}
+  .zoomctl button:hover{transform:translateY(-1px);}
+  .zoomctl button.reset{font-size:12px;}
+  .zoomhint{position:absolute; right:0; bottom:8px; font-family:"DM Mono",monospace; font-size:10.5px; color:var(--faint); z-index:4; pointer-events:none;}
+
+  /* ---- genre popover (anchored to the clicked bubble) ---- */
+  .pop{position:absolute; left:0; top:0; width:248px; max-width:78vw; z-index:6;
+       background:#fff; border:1px solid var(--hair); border-radius:13px; box-shadow:var(--shadow);
+       padding:14px 15px 13px; opacity:0; transform:scale(.96); transform-origin:center bottom;
+       transition:opacity .14s ease, transform .14s cubic-bezier(.22,1,.36,1);
+       pointer-events:none;}
+  .pop.open{opacity:1; transform:scale(1); pointer-events:auto;}
+  .pop .close{position:absolute; top:9px; right:9px; width:22px; height:22px; border:0; background:#F2F2F5;
+       border-radius:50%; cursor:pointer; color:var(--mute); font-size:13px; line-height:1; padding:0; transition:.12s;}
+  .pop .close:hover{background:#E6E6EA; color:var(--ink);}
+  .pop .fam{font-family:"DM Mono",monospace; font-size:10px; letter-spacing:.07em; text-transform:uppercase;
+       display:inline-flex; align-items:center; gap:6px;}
+  .pop .fam i{width:9px; height:9px; border-radius:50%;}
+  .pop h3{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:18px; letter-spacing:-.01em;
+       margin:7px 0 3px; line-height:1.1; padding-right:18px;}
+  .pop .meta{font-family:"DM Mono",monospace; font-size:11px; color:var(--faint); margin-bottom:8px;}
+  .pop .def{font-size:13px; line-height:1.5; color:var(--ink); margin:0;}
+  /* connector arrow */
+  .pop .arrow{position:absolute; width:13px; height:13px; background:#fff;
+       border:1px solid var(--hair); transform:rotate(45deg);}
+  .pop.below .arrow{top:-7px; border-right:0; border-bottom:0;}     /* box below circle, arrow points up */
+  .pop.above .arrow{bottom:-7px; border-left:0; border-top:0;}      /* box above circle, arrow points down */
+
+  /* ---- controls ---- */
+  .controls{display:flex; align-items:center; gap:18px; margin-top:10px; flex-shrink:0;}
+  .yr{font-family:"Bricolage Grotesque",sans-serif; font-weight:700; font-size:46px; letter-spacing:-.02em; line-height:.9; min-width:118px;}
+  .alive{font-family:"DM Mono",monospace; font-size:12px; color:var(--faint); margin-top:3px;}
+  .play{appearance:none; cursor:pointer; width:46px; height:46px; flex-shrink:0; border-radius:50%;
+        border:1px solid var(--hair); background:#fff; box-shadow:var(--shadow); color:var(--ink);
+        font-size:15px; display:grid; place-items:center; transition:.15s;}
+  .play:hover{transform:translateY(-1px);}
+  .play:focus-visible,#scrub:focus-visible{outline:2px solid #45C4E0; outline-offset:3px;}
+  .track{flex:1;}
+  #scrub{width:100%; margin:0; accent-color:#1B1B22; cursor:pointer;}
+  .ticks{display:flex; justify-content:space-between; margin-top:5px;}
+  .ticks button{appearance:none; border:0; background:transparent; cursor:pointer; padding:2px 4px;
+        font-family:"DM Mono",monospace; font-size:11px; color:var(--faint); transition:.15s;}
+  .ticks button:hover{color:var(--ink);}
+  footer{margin-top:10px; font-family:"DM Mono",monospace; font-size:11px; color:var(--faint); flex-shrink:0;}
+
+  @media(max-width:680px){
+    .title h1{font-size:24px} .title p{font-size:13px}
+    .yr{font-size:36px; min-width:92px} .play{width:42px;height:42px}
+    .controls{gap:12px}
+    .pop{width:210px}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="title">
+      <h1 class="display">genre&#8209;space</h1>
+      <p>watch genres bloom, drift, and fade &mdash; 1950 to today</p>
+      <div class="focus" id="focus">scroll to zoom &middot; drag to pan &middot; click a genre for its story</div>
+    </div>
+    <div class="headright">
+      <a class="paper-link" id="paperLink" href="paper.pdf" target="_blank" rel="noopener">read the paper &rarr;</a>
+      <div class="toggle" role="tablist" aria-label="view" style="display:inline-flex;background:#F0F0F3;border-radius:999px;padding:3px;">
+        <button id="tabMap" class="on" role="tab" aria-selected="true" style="appearance:none;border:0;background:#fff;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;color:#1B1B22;padding:7px 16px;border-radius:999px;box-shadow:0 1px 2px rgba(20,20,30,.04),0 8px 30px rgba(20,20,30,.05);transition:.18s;">Map</button>
+        <button id="tabStream" role="tab" aria-selected="false" style="appearance:none;border:0;background:transparent;cursor:pointer;font-family:'DM Mono',monospace;font-size:13px;color:#6E6E7C;padding:7px 16px;border-radius:999px;transition:.18s;">Stream</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="legend" id="legend"></div>
+
+  <div class="stage">
+    <svg id="viz" role="img" aria-label="An interactive, zoomable map of music genres that bloom and fade over time."></svg>
+
+    <div class="zoomctl" id="zoomctl">
+      <button id="zoomIn" aria-label="zoom in">+</button>
+      <button id="zoomOut" aria-label="zoom out">&minus;</button>
+      <button id="zoomReset" class="reset" aria-label="reset view">&#8634;</button>
+    </div>
+    <div class="zoomhint" id="zoomhint">scroll / pinch to zoom</div>
+
+    <div class="pop" id="pop" role="dialog" aria-hidden="true">
+      <span class="arrow" id="popArrow"></span>
+      <button class="close" id="popClose" aria-label="close">&times;</button>
+      <div class="fam" id="pFam"></div>
+      <h3 id="pName"></h3>
+      <div class="meta" id="pMeta"></div>
+      <p class="def" id="pDef"></p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <div>
+      <div class="yr display" id="yr">1950</div>
+      <div class="alive" id="alive">0 genres alive</div>
+    </div>
+    <button class="play" id="play" aria-label="play or pause">&#10074;&#10074;</button>
+    <div class="track">
+      <input type="range" id="scrub" min="1950" max="2024" step="1" value="1950" aria-label="year">
+      <div class="ticks" id="ticks"></div>
+    </div>
+  </div>
+  <footer id="foot"></footer>
+</div>
+
+<script src="data.js"></script>
+<script>
+(function(){
+  const D = window.GENRE_DATA;
+  if(!D){ document.getElementById('foot').textContent = 'data not found'; return; }
+  const FAM = D.families, GENRES = D.genres, DIV = D.diversity;
+  const Y0 = D.meta.yearMin, Y1 = D.meta.yearMax;
+  const NS = 'http://www.w3.org/2000/svg';
+  const svg = document.getElementById('viz');
+  const reduce = matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  const VB = {w:1000, h:600};
+  function fitVB(){
+    const r = svg.getBoundingClientRect();
+    VB.w = Math.max(640, r.width); VB.h = Math.max(360, r.height);
+    svg.setAttribute('viewBox', `0 0 ${VB.w} ${VB.h}`);
+  }
+  fitVB();
+
+  // ---- zoom/pan viewport (a <g> we transform) ----
+  // view = live (animated) transform; target = where it's heading. Each frame
+  // view eases toward target, giving smooth zoom. Drag moves both 1:1 (no lag).
+  const view = {k:1, x:0, y:0};
+  const target = {k:1, x:0, y:0};
+  const viewport = document.createElementNS(NS,'g');
+  svg.appendChild(viewport);
+  function applyView(){ viewport.setAttribute('transform', `translate(${view.x.toFixed(2)},${view.y.toFixed(2)}) scale(${view.k.toFixed(4)})`); }
+
+  // ---- precompute prominence + a stable jitter so coincident genres separate ----
+  // Many genres share near-identical (x,y); a small deterministic offset (in data
+  // units) lets them fan apart as you zoom in, instead of staying perfectly stacked.
+  function hashName(s){ let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))|0; return Math.abs(h); }
+  let maxProm = 1;
+  GENRES.forEach(g=>{
+    g._prom = {};
+    for(let y=Y0; y<=Y1; y++){
+      const c = (g.counts[y-1]||0)+(g.counts[y]||0)+(g.counts[y+1]||0);
+      g._prom[y] = c; if(c>maxProm) maxProm=c;
+    }
+    const hj = hashName(g.name);
+    g._jx = ((hj % 1000)/1000 - 0.5) * 4.2;        // +/-2.1 in 0-100 space
+    g._jy = (((hj >> 10) % 1000)/1000 - 0.5) * 4.2;
+    g._phase = (hj % 628) / 100;                    // stable, was Math.random()
+    g._r = 0; g._rv = 0;
+  });
+  const promAt = (g,y)=> g._prom[Math.round(Math.max(Y0,Math.min(Y1,y)))] || 0;
+
+  const M = {l:54, r:30, t:30, b:34};
+  const X = v => M.l + v/100*(VB.w-M.l-M.r);
+  const Yp = v => M.t + (1 - v/100)*(VB.h-M.t-M.b);
+  const Rmax = () => Math.min(46, VB.h*0.085);
+  const radiusFor = (g,y)=>{ const p=promAt(g,y); return p<=0 ? 0 : 5 + (Rmax()-5)*Math.sqrt(p/maxProm); };
+
+  // ================= MAP LAYER =================
+  const mapLayer = document.createElementNS(NS,'g'); mapLayer.setAttribute('class','layer');
+  viewport.appendChild(mapLayer);
+
+  const grid = document.createElementNS(NS,'g');
+  for(let i=0;i<=4;i++){
+    const gx=X(i*25), gy=Yp(i*25);
+    grid.appendChild(line(gx,M.t,gx,VB.h-M.b,'grid-line'));
+    grid.appendChild(line(M.l,gy,VB.w-M.r,gy,'grid-line'));
+  }
+  mapLayer.appendChild(grid);
+  const axA = txt(M.l, VB.h-12, 'acoustic', 'axis-label'); mapLayer.appendChild(axA);
+  const axB = txt(VB.w-M.r, VB.h-12, 'electronic →', 'axis-label','end'); mapLayer.appendChild(axB);
+  const axC = txt(16, M.t+8, '↑ atmospheric','axis-label'); mapLayer.appendChild(axC);
+
+  let selected = null;
+  const nodes = [...GENRES].sort((a,b)=> (b.counts[b.peak]||0)-(a.counts[a.peak]||0)).map(g=>{
+    const grp = document.createElementNS(NS,'g'); grp.style.cursor='pointer';
+    const c = document.createElementNS(NS,'circle');
+    const col = (FAM[g.family]||{}).color || '#bbb';
+    c.setAttribute('fill',col); c.setAttribute('fill-opacity','.68');
+    c.setAttribute('stroke',col); c.setAttribute('stroke-opacity','.9'); c.setAttribute('stroke-width','1.2');
+    const t = document.createElementNS(NS,'text'); t.setAttribute('class','blab');
+    t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','12.5'); t.textContent=g.name; t.setAttribute('opacity','0');
+    grp.appendChild(c); grp.appendChild(t); mapLayer.appendChild(grp);
+    const o = {g, grp, c, t, col, hover:false};
+    c.__node = o; grp.__node = o; t.__node = o;   // back-ref for hit-testing
+    grp.addEventListener('mouseenter',()=>{o.hover=true; if(!selected) setFocus(g);});
+    grp.addEventListener('mouseleave',()=>{o.hover=false; if(!selected) clearFocus();});
+    return o;
+  });
+  function nodeFromEl(el){ while(el && !el.__node) el = el.parentNode; return el ? el.__node : null; }
+
+  // ================= STREAM LAYER =================
+  const streamLayer = document.createElementNS(NS,'g'); streamLayer.setAttribute('class','layer');
+  streamLayer.setAttribute('opacity','0'); streamLayer.style.pointerEvents='none';
+  viewport.appendChild(streamLayer);
+
+  const famKeys = [...new Set(GENRES.map(g=>g.family))].sort((a,b)=> totalFam(b)-totalFam(a));
+  function totalFam(f){ let s=0; GENRES.filter(g=>g.family===f).forEach(g=>{for(const y in g.counts)s+=g.counts[y];}); return s; }
+  const famYear = {}; let maxStackByYear = 1;
+  for(let y=Y0;y<=Y1;y++){
+    let tot=0; famYear[y]={};
+    famKeys.forEach(f=>{ let s=0; GENRES.filter(g=>g.family===f).forEach(g=> s+= g.counts[y]||0); famYear[y][f]=s; tot+=s; });
+    if(tot>maxStackByYear) maxStackByYear=tot;
+  }
+  const streamPaths = {};
+  let nowLine, nowYr;
+  function buildStream(){
+    while(streamLayer.firstChild) streamLayer.removeChild(streamLayer.firstChild);
+    const sx = y => M.l + (y-Y0)/(Y1-Y0)*(VB.w-M.l-M.r);
+    const vscale = (VB.h-M.t-M.b) / (maxStackByYear*1.06);
+    const mid = M.t + (VB.h-M.t-M.b)/2;
+    famKeys.forEach(f=>{
+      const top=[], bot=[];
+      for(let y=Y0;y<=Y1;y++){
+        let below=0; for(const k of famKeys){ if(k===f) break; below+=famYear[y][k]; }
+        const tot = famKeys.reduce((a,k)=>a+famYear[y][k],0);
+        const base = mid - tot*vscale/2;
+        const y0 = base + below*vscale;
+        const y1v = y0 + famYear[y][f]*vscale;
+        top.push([sx(y),y0]); bot.push([sx(y),y1v]);
+      }
+      const p = document.createElementNS(NS,'path');
+      p.setAttribute('d', smooth(top)+' L'+bot.reverse().map(q=>q.join(',')).join(' L')+' Z');
+      const col=(FAM[f]||{}).color||'#bbb';
+      p.setAttribute('fill',col); p.setAttribute('fill-opacity','.82'); p.setAttribute('stroke','#fff'); p.setAttribute('stroke-width','.8');
+      streamLayer.appendChild(p); streamPaths[f]=p;
+      const lab=txt(VB.w-M.r-2, top[top.length-1][1]+ (famYear[Y1][f]*vscale)/2 +4, (FAM[f]||{}).label||f, 'stream-lab','end');
+      lab.setAttribute('fill', col); lab.setAttribute('font-size','11.5');
+      streamLayer.appendChild(lab);
+    });
+    for(let y=Y0;y<=Y1;y+=10){ streamLayer.appendChild(txt(sx(y), VB.h-10, y, 'axis-label','middle')); }
+    nowLine = line(sx(Y0),M.t,sx(Y0),VB.h-M.b,'nowline'); streamLayer.appendChild(nowLine);
+    nowYr = txt(sx(Y0), M.t-8, Y0, 'nowyr','middle'); streamLayer.appendChild(nowYr);
+    streamLayer._sx = sx;
+  }
+  buildStream();
+
+  // ---- focus readout ----
+  const focusEl=document.getElementById('focus');
+  const DEFAULT_HINT = 'scroll to zoom · drag to pan · click a genre for its story';
+  function setFocus(g){ const fam=(FAM[g.family]||{}).label||g.family;
+    focusEl.innerHTML = `<b>${g.name}</b> · ${fam.toLowerCase()} · born ${g.birth}`;
+    focusEl.style.color=(FAM[g.family]||{}).color||'';
+  }
+  function clearFocus(){ focusEl.innerHTML=DEFAULT_HINT; focusEl.style.color=''; }
+  clearFocus();
+
+  // ---- genre popover (anchored to the clicked bubble) ----
+  const pop=document.getElementById('pop');
+  const popArrow=document.getElementById('popArrow');
+  function openPop(o){
+    const g=o.g, fam=(FAM[g.family]||{});
+    selected=o;
+    document.getElementById('pFam').innerHTML=`<i style="background:${fam.color}"></i>${(fam.label||g.family)}`;
+    document.getElementById('pFam').style.color=fam.color;
+    document.getElementById('pName').textContent=g.name;
+    const alive = (g.counts[Y1]||0)>0;
+    document.getElementById('pMeta').textContent=`${g.birth}–${alive?'present':g.peak} · peak ${g.peak}`;
+    document.getElementById('pDef').textContent=g.def||'';
+    pop.classList.add('open'); pop.setAttribute('aria-hidden','false');
+    // jump to the bubble's peak so it's visible to point at
+    setPlay(false); year=g.peak; scrub.value=year; document.getElementById('yr').textContent=year;
+    renderMap(0); positionPop();
+  }
+  function closePop(){ selected=null; pop.classList.remove('open'); pop.setAttribute('aria-hidden','true'); clearFocus(); }
+  document.getElementById('popClose').onclick=(e)=>{ e.stopPropagation(); closePop(); };
+
+  // place the popover against the selected bubble; called every frame so it
+  // stays connected as the bubble drifts and as the view pans / zooms
+  function positionPop(){
+    if(!selected) return;
+    const o=selected;
+    const r=svg.getBoundingClientRect();
+    const stage=svg.parentNode, sr=stage.getBoundingClientRect();
+    const offx=r.left-sr.left, offy=r.top-sr.top;
+    // bubble centre + radius in viewBox units, then to stage pixels
+    const vbx=view.x + (o._cx||0)*view.k, vby=view.y + (o._cy||0)*view.k;
+    const px=offx + vbx/VB.w*r.width, py=offy + vby/VB.h*r.height;
+    const rad=(o._sr||6)/VB.w*r.width;
+    const pw=pop.offsetWidth, ph=pop.offsetHeight, gap=12, stageW=sr.width;
+    // default: box above the bubble; flip below if it would clip the top
+    let above = (py - rad - gap - ph) > 4;
+    let top = above ? (py - rad - gap - ph) : (py + rad + gap);
+    let left = px - pw/2;
+    left = Math.max(4, Math.min(stageW - pw - 4, left));
+    pop.style.left = left+'px';
+    pop.style.top = top+'px';
+    pop.classList.toggle('above', above);
+    pop.classList.toggle('below', !above);
+    pop.style.transformOrigin = above ? 'center bottom' : 'center top';
+    // arrow sits under the bubble centre, clamped within the card
+    const ax = Math.max(12, Math.min(pw-12, px-left)) - 6;
+    popArrow.style.left = ax+'px';
+  }
+
+  // ---- legend solo ----
+  let solo=null;
+  const legend=document.getElementById('legend');
+  famKeys.forEach(f=>{
+    const el=document.createElement('div'); el.className='pill';
+    el.innerHTML=`<i style="background:${(FAM[f]||{}).color}"></i>${(FAM[f]||{}).label||f}`;
+    el.addEventListener('click',()=>{ solo = (solo===f)?null:f; applySolo(); });
+    el.dataset.fam=f; legend.appendChild(el);
+  });
+  function applySolo(){
+    [...legend.children].forEach(el=>{
+      el.classList.toggle('dim', solo && el.dataset.fam!==solo);
+      el.classList.toggle('solo', solo && el.dataset.fam===solo);
+      if(solo && el.dataset.fam===solo) el.style.color=(FAM[solo]||{}).color; else el.style.color='';
+    });
+    famKeys.forEach(f=>{ if(streamPaths[f]) streamPaths[f].setAttribute('fill-opacity', (!solo||solo===f)?'.82':'.12'); });
+  }
+
+  // ================= ANIMATION =================
+  let year=Y0, playing=!reduce, last=null, t=0;
+  const yps=(Y1-Y0)/24;
+  const yrEl=document.getElementById('yr'), aliveEl=document.getElementById('alive'),
+        scrub=document.getElementById('scrub'), playBtn=document.getElementById('play');
+
+  function renderMap(dt){
+    let alive=0;
+    const k = view.k;
+    // radius grows only gently with zoom so bubbles stay distinct and readable
+    // (positions scale fully via the viewport transform, so genres fan apart);
+    // dividing by k counters the viewport's scale to keep on-screen size stable-ish.
+    const zoomR = Math.pow(k, 0.42);
+    nodes.forEach(o=>{
+      const g=o.g, tgt=radiusFor(g,year);
+      if(promAt(g,year)>0) alive++;
+      if(reduce){ o.g._r=tgt; }
+      else { const ks=140, ds=15; const a=ks*(tgt-o.g._r)-ds*o.g._rv; o.g._rv+=a*dt; o.g._r+=o.g._rv*dt; }
+      const r=Math.max(0,o.g._r);
+      const dim = (solo && g.family!==solo) || (selected && selected!==o);
+      // jitter + drift are in data space, so they spread further as you zoom in
+      const bob = reduce?0:Math.sin(t*1.1+g._phase)*2.2;
+      const drift = reduce?0:Math.cos(t*0.5+g._phase)*3;
+      const cx=X(g.x+g._jx)+drift, cy=Yp(g.y+g._jy)+bob;
+      const hot=o.hover||selected===o;
+      const onR = r*(hot?1.14:1)*zoomR;        // desired on-screen radius
+      const drawR = onR / k;                    // counter the viewport scale
+      // remember geometry (local viewBox units) so the popover can anchor to it
+      o._cx=cx; o._cy=cy; o._sr=onR;
+      // more labels reveal as you zoom in; sizes counter-scaled to stay legible
+      const labelThresh = (15/zoomR);
+      o.c.setAttribute('cx',cx); o.c.setAttribute('cy',cy);
+      o.c.setAttribute('r', drawR);
+      o.c.setAttribute('fill-opacity', dim?0.10:(hot?0.9:0.66));
+      o.c.setAttribute('stroke-opacity', dim?0.12:0.85);
+      o.c.setAttribute('stroke-width', (selected===o?2.4:1.2)/k);
+      const showLab = (r>labelThresh || hot) && !dim;
+      o.t.setAttribute('x',cx); o.t.setAttribute('y',cy-drawR-6/k);
+      o.t.setAttribute('opacity', showLab?(hot?1:0.85):0);
+      o.t.setAttribute('font-size', (12.5/k).toFixed(2));
+      o.t.setAttribute('font-weight', hot?700:500);
+    });
+    aliveEl.textContent = alive+' genres alive';
+  }
+  function renderStream(){
+    if(!nowLine) return;
+    const sx=streamLayer._sx, px=sx(year);
+    nowLine.setAttribute('x1',px); nowLine.setAttribute('x2',px);
+    nowYr.setAttribute('x',px); nowYr.textContent=Math.round(year);
+  }
+
+  function easeView(dt){
+    if(reduce){ view.k=target.k; view.x=target.x; view.y=target.y; applyView(); return; }
+    // smooth exponential approach; framerate-independent
+    const s = 1 - Math.pow(0.0001, dt);
+    view.k += (target.k - view.k) * s;
+    view.x += (target.x - view.x) * s;
+    view.y += (target.y - view.y) * s;
+    if(Math.abs(target.k-view.k)<1e-3){ view.k=target.k; view.x=target.x; view.y=target.y; }
+    applyView();
+  }
+
+  function frame(ts){
+    if(last==null) last=ts;
+    let dt=(ts-last)/1000; last=ts; if(dt>0.05) dt=0.05;
+    if(playing && !selected){ year+=dt*yps; if(year>Y1) year=Y0; }
+    t+=dt;
+    easeView(dt);
+    yrEl.textContent=Math.round(year); scrub.value=Math.round(year);
+    if(mode==='map') renderMap(dt); else renderStream();
+    if(selected && mode==='map') positionPop();
+    requestAnimationFrame(frame);
+  }
+  function setPlay(p){ playing=p; playBtn.innerHTML=p?'&#10074;&#10074;':'&#9654;'; if(p) last=null; }
+
+  // ---- view toggle ----
+  let mode='map';
+  const tabMap=document.getElementById('tabMap'), tabStream=document.getElementById('tabStream');
+  function styleTab(btn,on){
+    btn.style.background=on?'#fff':'transparent';
+    btn.style.color=on?'#1B1B22':'#6E6E7C';
+    btn.style.boxShadow=on?'0 1px 2px rgba(20,20,30,.04),0 8px 30px rgba(20,20,30,.05)':'none';
+  }
+  function setMode(m){
+    mode=m; const onMap=m==='map';
+    styleTab(tabMap,onMap); styleTab(tabStream,!onMap);
+    tabMap.setAttribute('aria-selected',onMap); tabStream.setAttribute('aria-selected',!onMap);
+    mapLayer.setAttribute('opacity',onMap?1:0); mapLayer.style.pointerEvents=onMap?'auto':'none';
+    streamLayer.setAttribute('opacity',onMap?0:1); streamLayer.style.pointerEvents=onMap?'none':'auto';
+    document.getElementById('zoomctl').style.display=onMap?'flex':'none';
+    document.getElementById('zoomhint').style.display=onMap?'block':'none';
+    if(!onMap && selected) closePop();
+    if(onMap) resetView();
+  }
+  tabMap.onclick=()=>setMode('map'); tabStream.onclick=()=>setMode('stream');
+
+  // ---- ZOOM + PAN ----
+  // Zoom sets `target` (frame loop eases `view` toward it -> smooth).
+  // Pan moves both `view` and `target` together -> immediate, no lag.
+  function clampTarget(){
+    target.k = Math.max(1, Math.min(8, target.k));
+    const maxPanX = VB.w*(target.k-1), maxPanY = VB.h*(target.k-1);
+    target.x = Math.max(-maxPanX, Math.min(VB.w*0.12*target.k, target.x));
+    target.y = Math.max(-maxPanY, Math.min(VB.h*0.12*target.k, target.y));
+  }
+  function setHint(){
+    document.getElementById('zoomhint').textContent =
+      target.k>1.05 ? `${target.k.toFixed(1)}× · drag to pan` : 'scroll / pinch to zoom';
+  }
+  function zoomAt(cx, cy, factor){
+    const nk = Math.max(1, Math.min(8, target.k*factor));
+    const f = nk/target.k;
+    target.x = cx - (cx - target.x)*f;
+    target.y = cy - (cy - target.y)*f;
+    target.k = nk;
+    clampTarget(); setHint();
+  }
+  function svgPoint(evt){
+    const r=svg.getBoundingClientRect();
+    return { x:(evt.clientX-r.left)/r.width*VB.w, y:(evt.clientY-r.top)/r.height*VB.h };
+  }
+  svg.addEventListener('wheel',(e)=>{
+    if(mode!=='map') return;
+    e.preventDefault();
+    const p=svgPoint(e);
+    // gentle per-notch factor for a smooth, controllable zoom
+    const factor = Math.exp(-e.deltaY * 0.0016);
+    zoomAt(p.x, p.y, factor);
+  }, {passive:false});
+
+  // drag to pan (moves view + target together so it tracks the cursor exactly).
+  // Selection is handled on pointerup (a tap that didn't move) because we use
+  // pointer capture for smooth panning, which would otherwise swallow clicks.
+  let dragging=false, dragStart=null, moved=false, downNode=null;
+  svg.addEventListener('pointerdown',(e)=>{
+    if(mode!=='map' || ptrs.size>1) return;
+    dragging=true; moved=false;
+    downNode = nodeFromEl(e.target);              // the bubble under the press, if any
+    dragStart={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y};
+    svg.classList.add('grabbing');
+    try{ svg.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  svg.addEventListener('pointermove',(e)=>{
+    if(!dragging) return;
+    const r=svg.getBoundingClientRect();
+    const dx=(e.clientX-dragStart.x)/r.width*VB.w, dy=(e.clientY-dragStart.y)/r.height*VB.h;
+    if(Math.abs(e.clientX-dragStart.x)+Math.abs(e.clientY-dragStart.y)>4) moved=true;
+    target.x=dragStart.vx+dx; target.y=dragStart.vy+dy; clampTarget();
+    view.x=target.x; view.y=target.y; applyView();   // 1:1, no easing while dragging
+  });
+  function endDrag(e){
+    if(!dragging) return;
+    dragging=false; svg.classList.remove('grabbing');
+    if(mode==='map' && !moved){
+      // a tap, not a drag: open the bubble that was pressed, or dismiss
+      const node = downNode || nodeFromEl(e && e.target);
+      if(node) openPop(node);
+      else if(selected) closePop();
+    }
+    moved=false; downNode=null;
+  }
+  svg.addEventListener('pointerup',endDrag);
+  svg.addEventListener('pointercancel',endDrag);
+
+  // pinch zoom (two-pointer)
+  const ptrs=new Map(); let pinchDist=0;
+  svg.addEventListener('pointerdown',e=>ptrs.set(e.pointerId,e));
+  svg.addEventListener('pointerup',e=>ptrs.delete(e.pointerId));
+  svg.addEventListener('pointercancel',e=>ptrs.delete(e.pointerId));
+  svg.addEventListener('pointermove',e=>{
+    if(ptrs.has(e.pointerId)) ptrs.set(e.pointerId,e);
+    if(ptrs.size===2){
+      dragging=false;
+      const [a,b]=[...ptrs.values()];
+      const d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);
+      if(pinchDist){ const mid=svgPoint({clientX:(a.clientX+b.clientX)/2, clientY:(a.clientY+b.clientY)/2}); zoomAt(mid.x,mid.y, d/pinchDist); }
+      pinchDist=d;
+    }
+  });
+  svg.addEventListener('pointerup',()=>{ if(ptrs.size<2) pinchDist=0; });
+
+  function resetView(){ target.k=1; target.x=0; target.y=0; setHint(); }
+  document.getElementById('zoomIn').onclick=()=>zoomAt(VB.w/2,VB.h/2,1.5);
+  document.getElementById('zoomOut').onclick=()=>zoomAt(VB.w/2,VB.h/2,1/1.5);
+  document.getElementById('zoomReset').onclick=resetView;
+
+  // ---- controls ----
+  playBtn.onclick=()=>{ if(selected) closePop(); setPlay(!playing); };
+  scrub.oninput=()=>{ setPlay(false); if(selected) closePop(); year=+scrub.value; yrEl.textContent=year; if(mode==='map') renderMap(0); else renderStream(); };
+
+  const ticks=document.getElementById('ticks');
+  for(let y=Y0 - (Y0%10===0?0:Y0%10) ; y<=Y1; y+=10){
+    if(y<Y0) continue;
+    const b=document.createElement('button'); b.textContent=("'"+String(y).slice(2));
+    b.title=y; b.onclick=()=>{ setPlay(false); if(selected) closePop(); year=y; scrub.value=y; yrEl.textContent=y; if(mode==='map') renderMap(0); else renderStream(); };
+    ticks.appendChild(b);
+  }
+
+  document.addEventListener('keydown',(e)=>{ if(e.key==='Escape' && selected) closePop(); });
+
+  // ---- footer ----
+  const f=document.getElementById('foot');
+  f.textContent = D.meta.source === 'discogs'
+    ? `Discogs data · ${D.meta.generated} · ${D.genres.length} styles`
+    : `${D.genres.length} documented styles, 1950–${D.meta.yearMax} · github.com/arjunkalbag/genre-space`;
+
+  // ---- helpers ----
+  function line(x1,y1,x2,y2,cls){ const l=document.createElementNS(NS,'line'); l.setAttribute('x1',x1);l.setAttribute('y1',y1);l.setAttribute('x2',x2);l.setAttribute('y2',y2); if(cls)l.setAttribute('class',cls); return l; }
+  function txt(x,y,s,cls,anchor){ const e=document.createElementNS(NS,'text'); e.setAttribute('x',x);e.setAttribute('y',y); if(cls)e.setAttribute('class',cls); if(anchor)e.setAttribute('text-anchor',anchor); e.textContent=s; return e; }
+  function smooth(pts){
+    if(pts.length<2) return 'M'+pts.map(p=>p.join(',')).join(' L');
+    let d='M'+pts[0][0]+','+pts[0][1];
+    for(let i=1;i<pts.length-1;i++){ const mx=(pts[i][0]+pts[i+1][0])/2, my=(pts[i][1]+pts[i+1][1])/2; d+=` Q${pts[i][0]},${pts[i][1]} ${mx},${my}`; }
+    const n=pts.length-1; d+=` L${pts[n][0]},${pts[n][1]}`; return d;
+  }
+
+  // ---- boot ----
+  window.addEventListener('resize',()=>{ fitVB(); buildStream(); applySolo(); });
+  applyView();
+  if(reduce){ year=Y1; scrub.value=Y1; yrEl.textContent=Y1; setPlay(false); }
+  else { setPlay(true); }
+  requestAnimationFrame(frame);
+  applySolo();
+})();
+</script>
+</body>
+</html>
