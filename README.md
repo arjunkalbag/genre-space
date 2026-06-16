@@ -1,6 +1,6 @@
 # genre-space
 
-An interactive, zoomable map of music genre evolution (1950–2024) paired with a research paper.
+An interactive, zoomable map of music genre evolution (1950–2024) paired with a research paper. By Arjun Kalbag.
 
 **Live site:** https://genre-space.netlify.app/
 
