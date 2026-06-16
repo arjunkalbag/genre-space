@@ -10,18 +10,8 @@ An interactive, zoomable map of music genre evolution (1950–2024) paired with 
 
 | File | What it is |
 |---|---|
-| `genre-space.html` | Self-contained interactive — open in any browser, no server needed |
+| `genre-space.html` | Self-contained interactive |
 | `genre-space-paper.pdf` | Research paper: *The Genre Explosion: Diversity, Demography, and the Shape of Recorded Music, 1950–2024* |
-
----
-
-## Using the interactive
-
-- **Play / scrub** the timeline to watch 229 genres bloom, drift, and fade across 75 years.
-- **Scroll or pinch to zoom**, **drag to pan** — explore dense clusters of subgenres up close.
-- **Click any genre** for a panel with its definition, birth year, peak, family, and a volume sparkline.
-- **Map view** plots genres by sonic character; **Stream view** shows family share over time.
-- Click a **family in the legend** to solo it.
 
 ---
 
